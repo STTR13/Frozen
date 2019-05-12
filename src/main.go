@@ -1,36 +1,80 @@
 package main
 
 import (
-	//"bufio"
 	"fmt"
-	//"os"
+	"io"
+	"log"
+	"net"
+	"strings"
 )
 
-func strstart(str, comp string) (b bool) {
-	return comp == str[:len(comp)]
-}
+//type channel struct {
+//	var name string
+//	var list *client
+//}
+
+//type client struct {
+//	var username string
+//	var nickname string
+//	var current_chanel channel
+//	var ioport net.Conn
+//}
 
 func main() {
-	//reader := bufio.NewReader(os.Stdin)
-    //fmt.Print("Enter text: ")
-    //text, _ := reader.ReadString('\n')
-    //fmt.Println(text)
-
-    var imp string
-    fmt.Scan(&imp)
-
-	switch {
-	case strstart(imp, "PASS NICK USER"):
-	case strstart(imp, "NICK"):
-	case strstart(imp, "JOIN"):
-	case strstart(imp, "PART"):
-	case strstart(imp, "NAMES"):
-	case strstart(imp, "LIST"):
-	case strstart(imp, "PRIVMSG"):
-	default:
+	// Listen on TCP port 2000 on all available unicast and
+	// anycast IP addresses of the local system.
+	l, err := net.Listen("tcp", ":2000")
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer l.Close()
+	for {
+		// Wait for a connection.
+		conn, err := l.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Handle the connection in a new goroutine.
+		// The loop then returns to accepting, so that
+		// multiple connections may be served concurrently.
+		go func(c net.Conn) {
+			var acc string
+			for {
+				buf := make([]byte, 1)
+				if _, err := io.ReadFull(c, buf); err != nil {
+					break
+				}
+				if string(buf) == "\n" {
+					ihandler(acc, c)
+					acc = ""
+				} else {
+					acc += string(buf)
+				}
+				io.WriteString(c, string(buf))
+			}
+			// Shut down the connection.
+			c.Close()
+		}(conn)
+	}
+}
 
-    //ln := ""
-    //fmt.Sscanln("%v", ln)
-    //fmt.Println(ln)
+func strstart(str, comp string) (b bool) {
+	if str == comp {
+		return comp == str[:len(comp) - 1]
+	}
+	return false
+}
+
+func ihandler(inp string, c net.Conn) {
+	fmt.Printf("%s\n", inp)
+	switch {
+	case strings.Contains(inp, "USER"):
+		fmt.Printf("USER cmd found\n")
+	case strings.Contains(inp, "PASS"):
+		fmt.Printf("PASS cmd found\n")
+	case strings.Contains(inp, "NICK"):
+		fmt.Printf("NICK cmd found\n")
+	default:
+		fmt.Printf("%s\n", inp)
+	}
 }
