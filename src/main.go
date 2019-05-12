@@ -1,6 +1,6 @@
 package main
 
-const password string = nil
+
 
 import (
 	"fmt"
@@ -15,22 +15,23 @@ import (
 //	var list *client
 //}
 
-type client struct {
-	var username string
-	var hostname string
-	var nickname string
-	var current_chanel channel
-	var ioport net.Conn
-}
+/*type client struct {
+	username string
+	hostname string
+	nickname string
+	//current_chanel channel
+	ioport net.Conn
+}*/
 
 func main() {
+
 	// Listen on TCP port 2000 on all available unicast and
 	// anycast IP addresses of the local system.
 	l, err := net.Listen("tcp", ":2000")
 	if err != nil {
 		log.Fatal(err)
 	}
-	client_list := make(chan []client, 0)
+	//client_list := make(chan []client, 0)
 	defer l.Close()
 	for {
 		// Wait for a connection.
@@ -49,7 +50,8 @@ func main() {
 				if _, err := io.ReadFull(c, buf); err != nil {
 					break
 				}
-				if string(buf) == "\n" {
+				if string(buf) == "\n" && acc[len(acc) - 1:] == "\r" {
+					acc = acc[:len(acc) - 1]
 					if !pw { pw = pass(acc, c) }
 					if pw { ihandler(acc, c) }
 					acc = ""
@@ -66,18 +68,17 @@ func main() {
 
 //func (cll chan []client) add(str string, c net.Conn)
 
-func pass(str string, c net.Conn) bool {
+func pass(inp string, c net.Conn) bool {
+	const password string = "123"
 	if strings.Contains(inp, "PASS") {
-		t := strings.Split(inp, ' ')
-		if len(t) == 2 && t[1][0:1] == ':' && t[1][1:] == password {
+		t := strings.Split(inp, " ")
+		fmt.Printf("pass:\t%s\n", t[1][1:])
+		if len(t) == 2 && t[1][0:1] == ":" && strings.Compare(t[1][1:],password) == 0 {
 			return true
 		} else {
 			io.WriteString(c, "ERR_NEEDMOREPARAMS")
 		}
-	} else {
-		if password == nil { return true }
-		else { return false }
-	}
+	} else if password == "" { return true }
 	return false
 }
 
