@@ -1,5 +1,7 @@
 package main
 
+const password string = nil
+
 import (
 	"fmt"
 	"io"
@@ -13,12 +15,13 @@ import (
 //	var list *client
 //}
 
-//type client struct {
-//	var username string
-//	var nickname string
-//	var current_chanel channel
-//	var ioport net.Conn
-//}
+type client struct {
+	var username string
+	var hostname string
+	var nickname string
+	var current_chanel channel
+	var ioport net.Conn
+}
 
 func main() {
 	// Listen on TCP port 2000 on all available unicast and
@@ -27,6 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	client_list := make(chan []client, 0)
 	defer l.Close()
 	for {
 		// Wait for a connection.
@@ -39,13 +43,15 @@ func main() {
 		// multiple connections may be served concurrently.
 		go func(c net.Conn) {
 			var acc string
+			var pw bool
 			for {
 				buf := make([]byte, 1)
 				if _, err := io.ReadFull(c, buf); err != nil {
 					break
 				}
 				if string(buf) == "\n" {
-					ihandler(acc, c)
+					if !pw { pw = pass(acc, c) }
+					if pw { ihandler(acc, c) }
 					acc = ""
 				} else {
 					acc += string(buf)
@@ -58,8 +64,25 @@ func main() {
 	}
 }
 
+//func (cll chan []client) add(str string, c net.Conn)
+
+func pass(str string, c net.Conn) bool {
+	if strings.Contains(inp, "PASS") {
+		t := strings.Split(inp, ' ')
+		if len(t) == 2 && t[1][0:1] == ':' && t[1][1:] == password {
+			return true
+		} else {
+			io.WriteString(c, "ERR_NEEDMOREPARAMS")
+		}
+	} else {
+		if password == nil { return true }
+		else { return false }
+	}
+	return false
+}
+
 func strstart(str, comp string) (b bool) {
-	if str == comp {
+	if len(str) >= len(comp) {
 		return comp == str[:len(comp) - 1]
 	}
 	return false
